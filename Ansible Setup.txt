@@ -1,0 +1,69 @@
+Ansible Setup
+
+Create 2 EC2 Instances
+1. Ansible Server
+2. Target Server
+----------------------------------
+Passwordless Authentication
+-----------------------------
+In 1st Server install Ansible
+
+>sudo apt-get install ansible 
+------------------------------------------------
+Now, Generate SSH key
+
+>ssh-keygen
+----------------------------------------------------------
+Now, Go to 2nd Server i.e. Target Server, Generate SSH Key
+
+>ssh-keygen
+----------------------------------------------------------
+Now, Go to 1st Server,
+
+go to /home/ubuntu/.ssh/id_rsa.pub
+
+copy content of "id_rsa.pub" file
+
+and paste it in /home/ubuntu/.ssh/authorized_keys
+----------------------------------------------------------
+Now, run the command
+>ssh <Private IP Address of Target Server>
+----------------------------------------------------------
+
+
+Ansible Adhoc Command :  Ansible ad hoc commands are one-liner Linux shell commands and playbooks are like a shell script, a collective of many commands with logic. Ansible ad hoc commands come handy when you want to perform a quick task.
+----------------------
+Examples
+>ansible -i inventory 172.31.38.93 -m "shell" -a "mkdir devopsclass" -a "touch abc"
+o/p=> 1 file get created in 172.31.38.93 server presented in Inventory
+
+>ansible -i inventory all -m "shell" -a "mkdir devopsclass2222"
+o/p=> 1 Folder will get created in all servers presented in Inventory
+
+
+Inventory file : The simplest inventory is a single file with a list of hosts and groups. The default location for this file is /etc/ansible/hosts. You can specify a different inventory file at the command line using the -i <path> option or in configuration using inventory.
+------------------
+Format
+-------
+mail.example.com
+
+[webservers]
+foo.example.com
+bar.example.com
+
+[dbservers]
+one.example.com
+two.example.com
+three.example.com
+----------------------
+Example
+-------
+Eg1:
+172.31.38.93
+
+172.31.34.107
+----------------
+Eg2:
+
+
+

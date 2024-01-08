@@ -1,0 +1,92 @@
+sudo apt update
+sudo apt install python3-pip
+git clone https://github.com/shreys7/django-todo.git
+cd django-todo/
+sudo apt install python3-pip
+pip3 install django
+python3 manage.py runserver
+python3 manage.py migrate
+python3 manage.py runserver 0.0.0.0:8000
+python3 manage.py runserver 0.0.0.0:8001
+cd todoApp/
+ls
+vi settings.py 
+cd ..
+ls
+python3 manage.py runserver 0.0.0.0:8001
+nohup python3 manage.py runserver 0.0.0.0:8001 &
+lsof -i:8001
+kill -9 <pid>
+-------------------------------------------------------------------
+Using Dockerfile
+-------------------
+
+sudo apt update
+sudo apt install docker.io
+mkdir project
+cd project/
+ls
+git clone https://github.com/shreys7/django-todo.git
+ls
+cd django-todo/vi Dockerfile
+cd django-todo/
+vi Dockerfile
+----------------------------------------------------------
+FROM python:3
+RUN pip install django==3.2
+
+COPY . .
+
+RUN python manage.py migrate
+
+CMD ["python","manage.py","runserver","0.0.0.0:8001"]
+-----------------------------------------------------------
+sudo docker build . -t todoapp
+sudo docker ps 
+sudo docker run -p 8001:8001 f7043d50b28d
+cd todoApp/
+ls
+vi settings.py 
+cd ..
+ls
+sudo docker ps
+sudo docker run -p 8001:8001 f7043d50b28d
+sudo docker build . -t todoapps
+sudo docker run -p 8001:8001 44fc528be87a
+nohup sudo docker run -p 8001:8001 44fc528be87a &
+-----------------------------------------------------------------
+Install Java
+-----------------
+sudo apt update
+sudo apt install openjdk-17-jre
+java -version
+------------------------------------------------------------------------------
+Install Jenkins
+-----------------
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian/jenkins.io-2023.key
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt-get update
+sudo apt-get install jenkins
+------------------------------------------------------------------------------
+Access Portal via browser
+<IP:8080>
+-------------------------------
+
+
+To Install Jenkins using Docker
+-----------------------------------
+sudo docker pull jenkins/jenkins
+sudo docker run -d -p 80:8080 docker.io/jenkins/jenkins:latest
+sudo docker ps
+sudo docker kill 46d506f06774
+sudo docker rm 46d506f06774
+sudo docker run -d -p 8080:8080 docker.io/jenkins/jenkins:latest
+sudo docker ps
+sudo cat /var/jenkins_home/secrets/initialAdminPassword
+sudo docker kill 43666bc34500
+sudo docker rm 43666bc34500
+-------------------------------------
+

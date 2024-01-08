@@ -1,0 +1,233 @@
+EKS End to End Project
+
+AKIAZ4ASDFLH2H6GXZIM
+UOQlI8MVRBvxWygAiU2+49aVgi85XRwEqwvSXu8X
+
+EKS Cluster Setup & Deployment of Two-Tier Application 
+-----------------------------------------------------------------------------------------------------------------------------------------------
+1. Launch an Ubuntu Machine
+2. Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+sudo apt install unzip
+unzip awscliv2.zip
+sudo ./aws/install -i /usr/local/aws-cli -b /usr/local/bin --update
+
+3. Make an IAM User who has access of  
+a. Creating Cluster
+b. EC2 instance
+c. Creating Roles
+d. Bucket
+
+4. Create IAM user and asign required permissions and generate ACCESS key
+AKIA4DF63IPMCE7WO2G3
+FfBmxWJgvN2IHJSUCR4jNk5Zs+JujAp0EVg948fH
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+To install kubectl
+---------------------
+curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.28.3/2023-11-02/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin
+kubectl version --short –client
+
+To install eksctl
+---------------------
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+eksctl version
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+Create Cluster
+---------------------
+eksctl create cluster --name tws-cluster --region ap-south-1 --fargate
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+aws eks update-kubeconfig --name tws-cluster --region ap-south-1
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+Fargate
+-------
+eksctl create fargateprofile \
+  --cluster tws-cluster \
+  --region ap-south-1 \
+  --name alb-sample-app \
+  --namespace game-2048
+-----------------------------------------------------------------------------------------------------------------------------------------------
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: game-2048
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: game-2048
+  name: deployment-2048
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-2048
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-2048
+    spec:
+      containers:
+      - image: public.ecr.aws/l6m2t8p7/docker-2048:latest
+        imagePullPolicy: Always
+        name: app-2048
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: game-2048
+  name: service-2048
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: app-2048
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: game-2048
+  name: ingress-2048
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: service-2048
+              port:
+                number: 80
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/examples/2048/2048_full.yaml
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+kubectl get po -n game-2048
+---------------------------
+kubectl get po -n game-2048 -w
+---------------------------------
+kubectl get svc -n game-2048
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+eksctl utils associate-iam-oidc-provider --cluster tws-cluster --approve
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.5.4/docs/install/iam_policy.json
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+Download IAM Policy for Load Balancer
+-----------------------
+aws iam create-policy \
+    --policy-name AWSLoadBalancerControllerIAMPolicy \
+    --policy-document file://iam_policy.json
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+Create IAM Role
+----------------
+eksctl create iamserviceaccount \
+  --cluster=tws-cluster \
+  --namespace=kube-system \
+  --name=aws-load-balancer-controller \
+  --role-name AmazonEKSLoadBalancerControllerRole \
+  --attach-policy-arn=arn:aws:iam::678642789071:policy/AWSLoadBalancerControllerIAMPolicy \
+  --approve
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+HELM Installtion
+----------------
+curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+sudo apt-get install apt-transport-https --yes
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+sudo apt-get update
+sudo apt-get install helm
+------------------------------------------------------
+Add HELM Repo
+-------------
+helm repo add eks https://aws.github.io/eks-charts
+------------------------------------------------------
+Install AWS Load Balancer Controller
+------------------------------------
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller -n kube-system \
+  --set clusterName=tws-cluster \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller \
+  --set region=ap-south-1 \
+  --set vpcId=vpc-0804ed9e6b0da7b7a
+--------------------------------------------------------------------------------------------
+kubectl get deployment -n kube-system aws-load-balancer-controller
+--------------------------------------------------------------------------------------------
+kubectl get po -n kube-system
+--------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+SetUp CloudWatch agent for EKS Cluster
+----------------------------------------------------------
+Step 1: Create a namespace for CloudWatch
+-----------------------------------------
+kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/cloudwatch-namespace.yaml
+-----------------------------------------------------
+Step 2: Create a service account in the cluster
+-----------------------------------------------
+kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/cwagent/cwagent-serviceaccount.yaml
+-----------------------------------------------------
+Step 3: Create a ConfigMap for the CloudWatch agent
+---------------------------------------------------
+curl -O https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/cwagent/cwagent-configmap.yaml
+--------------------------------------------------------
+Edit the downloaded YAML file, as follows:
+1. cluster_name – In the kubernetes section, replace {{cluster_name}} with the name of your cluster. Remove the {{}} characters.
+
+Point 2 to 6 are optional
+--------------------------
+2. metrics_collection_interval – In the kubernetes section, you can specify how often the agent collects metrics. The default is 60 seconds. The default cadvisor collection interval in kubelet is 15 seconds, so don't set this value to less than 15 seconds.
+
+3. endpoint_override – In the logs section, you can specify the CloudWatch Logs endpoint if you want to override the default endpoint. You might want to do this if you're publishing from a cluster in a VPC and you want the data to go to a VPC endpoint.
+
+4. force_flush_interval – In the logs section, you can specify the interval for batching log events before they are published to CloudWatch Logs. The default is 5 seconds.
+
+5. region – By default, the agent published metrics to the Region where the worker node is located. To override this, you can add a region field in the agent section: for example, "region":"us-west-2".
+
+6. statsd section – If you want the CloudWatch Logs agent to also run as a StatsD listener in each worker node of your cluster, you can add a statsd section to the metrics section, as in the following example. For information about other StatsD options for this section, see Retrieve custom metrics with StatsD .
+
+7. Create the ConfigMap in the cluster by running the following command.
+kubectl apply -f cwagent-configmap.yaml
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+Step 4: Deploy the CloudWatch agent as a DaemonSet
+-------------------------------------------------
+To deploy the CloudWatch agent as a DaemonSet
+1. If you do not want to use StatsD on the cluster, enter the following command.
+--------------------
+kubectl apply -f https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/cwagent/cwagent-daemonset.yaml
+-----------------------------
+If you do want to use StatsD, follow these steps:
+
+a. Download the DaemonSet YAML to your kubectl client host by running the following command.
+------------------------
+curl -O  https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/cwagent/cwagent-daemonset.yaml
+-------------------------------------------------------------------------------
+b. Uncomment the port section in the cwagent-daemonset.yaml file as in the following:
+ports:
+  - containerPort: 8125
+    hostPort: 8125
+    protocol: UDP
+-------------------------------------------------------------------------------
+c. Deploy the CloudWatch agent in your cluster by running the following command.
+kubectl apply -f cwagent-daemonset.yaml
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+2. Validate that the agent is deployed by running the following command.
+kubectl get pods -n amazon-cloudwatch
+-------------------------------------
+kubectl describe pod pod-name -n amazon-cloudwatch
+-------------------------------------
+kubectl logs pod-name  -n amazon-cloudwatch

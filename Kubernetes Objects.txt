@@ -1,0 +1,73 @@
+Kubernetes Objects:
+The Kubernetes Platform contains control over the resources related to Storage and Compute. These resources are regarded as Objects, and it contains 8 Key objects.
+
+1. Pods:
+
+Being a higher-level abstraction grouping containerized component, it consists of one or more containers that can co-exist on the host system and share resources. With each Pod having a unique IP Address in a particular cluster, it allows the usage of ports without any conflicts.
+
+2. Replica Sets:
+
+At any time, it is needed to maintain a stable set of running replica Pods. This is maintained by Replica sets. Also, its purpose is to manage the availability of the required number of identical Pods.
+
+3. Services:
+
+A Kubernetes service is defined by a set of pods that work together. These sets of pods are defined with a label selector. The service discovery can happen in two different modes, using environmental variables or Kubernetes DNS.
+
+4. Volumes:
+
+By default, ephemeral storage will be provided by the File Systems of Kubernetes. This form of storage will remove all the data stored in such containers when the Pod is restarted. The Kubernetes Volume will provide persistent storage such that the data exists for the whole lifetime of the Pod.
+
+5. Name Spaces:
+
+The large number of resources managed by Kubernetes are separated into multiple non-overlapping sets. These sets are referred to as Namespaces. These are generally used when a large number of users exist in the form of multiple teams or projects.
+
+6. ConfigMaps and Secrets:
+
+Some of the Configuration Data may contain confidential information which makes the storage and maintenance of configuration information a challenge. ConfigMaps and Secrets are two mechanisms provided by Kubernetes that can deal with this problem. Both methods permit changes in the configuration without application-build.
+
+7. Stateful Sets:
+
+Stateless applications are easier to handle in terms of scaling. Because all it needs is to add up the number of Pods. But for Stateful workloads, you need to maintain the states when the Pod is restarted, and the state may need to be redistributed for scaling. The stateful sets provided by Kubernetes are used to run stateful Applications ensuring uniqueness and ordering of the instances of a Pod.
+
+The key difference between stateful and stateless applications is that stateless applications don't “store” data whereas stateful applications require backing storage. Stateful applications like the Cassandra, MongoDB and mySQL databases all require some type of persistent storage that will survive service restarts.
+
+8. Daemon Sets:
+
+Generally, Kubernetes Scheduler is responsible for deciding the location where Pods are run. It is done by the algorithm. This mode of scheduling the Pods is implemented by the feature called Daemon Sets.
+ 
+
+​For your business, container management is as much needed as container creation. This is best handled by Kubernetes. And all the objects provided by the Kubernetes act as resources to fulfil its purpose.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ClusterIP
+A ClusterIP service is the default type of service in Kubernetes. It creates a service inside the Kubernetes cluster, which can be accessed by other applications in the cluster, without allowing external access.
+
+A ClusterIP exposes the following:
+
+spec.clusterIp:spec.ports[*].port
+
+======================================
+NodePort
+A NodePort service opens a specific port on all the Nodes in the cluster, and any traffic sent to that port is forwarded to the service. The service cannot be accessed from the cluster IP. 
+NodePort
+A NodePort service opens a specific port on all the Nodes in the cluster, and any traffic sent to that port is forwarded to the service. The service cannot be accessed from the cluster IP. 
+
+A NodePort exposes the following:
+
+<NodeIP>:spec.ports[*].nodePort
+spec.clusterIp:spec.ports[*].port
+
+=========================================
+LoadBalancer
+A LoadBalancer is a standard way to expose a Kubernetes service externally so it can be accessed over the internet. If you are using Google Kubernetes Engine (GKE), this creates a Network Load Balancer with one IP address, which external users can access and are then forwarded to the relevant node in your Kubernetes cluster. A LoadBalancer can also be accessed in the same way as a ClusterIP or NodePort
+
+A LoadBalancer exposes the following:
+
+spec.loadBalancerIp:spec.ports[*].port
+<NodeIP>:spec.ports[*].nodePort
+spec.clusterIp:spec.ports[*].port
+
+=========================================
+Ingress
+Ingress is actually not a type of service. It sits in front of multiple services and performs smart routing between them, providing access to your cluster. There are several types of ingress controllers that have different routing capabilities. In GKE, the ingress controller creates an HTTP Load Balancer, which can route traffic to services in the Kubernetes cluster based on path or subdomain.

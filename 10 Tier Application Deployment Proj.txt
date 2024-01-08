@@ -1,0 +1,179 @@
+10 Tier Application Deployment Project
+
+1. Create an IAM User for Logging in AWS Account
+2. Assigh Policies
+	a. AmazonEC2FullAccess
+	b. AmazonEKS_CNI_Policy
+	c. AmazonEKSClusterPolicy
+	d. AmazonEKSWorkerNodePolicy
+	e. AWSCloudFormationFullAccess
+	f. eksfullaccess (custom policy created with inline policy with full access)
+	g. IAMFullAccess
+3. Create EC2 Machine with t2.xlarge and 30GB storage
+4. Install AWSCLI
+5. Create access key for IAM user
+6. Run command
+	> aws configure
+	Access key: AKIAZ4ASDFLH4UXE5PXO
+	Secret access key: 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
+	
+	> aws configure list
+7. Install Kubectl
+8. Install eksctl
+9. Create Cluster
+	> eksctl create cluster --name=myekscluster \
+				--region=ap-south-1 \
+				--zones=ap-south-1a,ap-south-1b \
+				--without-nodegroup
+				
+
+	> 
+
+
+10. Install Java & Jenkins
+11. Install Docker
+12. > sudo chmod 666 /var/run/docker.sock
+13. Install SonarQube using Docker
+	> docker run -d -p 9000:9000 
+
+14. eksctl utils associate-iam-oidc-provider \
+	--region ap-south-1 \
+	--cluster myekscluster \
+	--approve
+15. eksctl create nodegroup --cluster=myekscluster \
+			    --region=ap-south-1 \
+			    --name=node2 \
+			    --node-type=t2.medium \
+			    --nodes=3 \
+			    --nodes-min=2 \
+			    --nodes-max=3 \
+			    --node-volume-size=20 \
+			    --ssh-access \
+			    --ssh-public-key=EKSKP \
+			    --managed \
+			    --asg-access \
+			    --external-dns-access \
+                            --full-ecr-access \
+			    --appmesh-access \
+			    --alb-ingress-access
+16. Install following Plugins in Jenkins	
+	a. SonarQube Scanner
+ 	b. Docker
+	c. Docker Pipeline
+	d. docker-build-step
+	e. CloudBees Docker Build and PublishVersion
+	f. Kubernetes
+	g. Kubernetes CLIVersion
+
+17. Go to Jenkins > Manage Jenkins > Tools.
+	Perform Configuration for Docker and SonarQube
+
+18. Go to SonarQube & Generate Token
+
+19. Go To Jenkins > Manage Jenkins > Credentials > Add Credentials > Global > Kind: Secret Text > Secret: Paste Token generated in Sonarqube > ID(Optional) > Create.
+
+20. Add SonarQube in Jenkins
+	Manage Jenkins > System >  SonarQube Installation > Name: SonarQube > Server URL > (IP:9000) > Server authentication token: Select Token > Apply >    	Save. 
+	
+21. Go To AWS EKS Page > Networking > Additional Security Group > Edit Inbound Rules > Allow all Traffic > Save Rule
+
+22. Go To EC2 Instance of kubectl
+	a. Create Namespace: webapps
+	b. Create YAML file for ServiceAccount
+Kubernetes service accounts are Kubernetes resources, created and managed using the Kubernetes API, meant to be used by in-cluster Kubernetes-created entities, such as Pods, to authenticate to the Kubernetes API server or external services.
+> vi sa.yml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins
+  namespace: webapp
+
+> kubectl apply -f sa.yml
+
+------------------------------------
+>vi rbacfile.yml
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-role
+  namespace: webapp
+rules:
+  - apiGroups:
+      - ""
+      - apps
+      - autoscaling
+      - batch
+      - extensions
+      - policy
+      - rbac.authorization.k8s.io
+    resources:
+      - pods
+      - componentstatuses
+      - configmaps
+      - daemonsets
+      - deployments
+      - events
+      - endpoints
+      - horizontalpodautoscalers
+      - ingress
+      - jobs
+      - limitranges
+      - namespaces
+      - nodes
+      - pods
+      - persistentvolumes
+      - persistentvolumeclaims
+      - resourcequotas
+      - replicasets
+      - replicationcontrollers
+      - serviceaccounts
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+---------------------------------------------
+kubectl apply -f rbacfile.yml
+---------------------------------------------
+vi rolebinding.yml
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-role-binding
+  namespace: webapp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: app-role
+subjects:
+  - namespace: webapp
+    kind: ServiceAccount
+    name: jenkins
+---------------------------------------------
+kubectl apply -f rolebinding.yml
+---------------------------------------------
+Generate Token: Create Secret 
+==============
+https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/secret/serviceaccount/mysecretname.yaml
+==============================================================================================================================
+vi secrettoken.yml
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: mysecretname
+  annotations:
+    kubernetes.io/service-account.name: jenkins
+------------------------------------------------
+kubectl apply -f secrettoken.yml
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+GO to Jenkins > Create Pipeline > Tick Discard old builds > Max # of builds to keep : 2
